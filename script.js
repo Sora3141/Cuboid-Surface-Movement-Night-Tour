@@ -330,7 +330,6 @@ function init() {
     const mouse = new THREE.Vector2();
 
     renderer.domElement.addEventListener('mousedown', (e) => {
-        // [スマホ対応] クリック判定時のサイズ強制同期
         if (renderer.domElement.width !== window.innerWidth * Math.min(window.devicePixelRatio, 2)) {
              renderer.setSize(window.innerWidth, window.innerHeight);
              camera.aspect = window.innerWidth / window.innerHeight;
@@ -339,17 +338,14 @@ function init() {
 
         e.preventDefault();
         const rect = renderer.domElement.getBoundingClientRect();
-        
         mouse.x = ( ( e.clientX - rect.left ) / rect.width ) * 2 - 1;
         mouse.y = - ( ( e.clientY - rect.top ) / rect.height ) * 2 + 1;
-        
         raycaster.setFromCamera(mouse, camera);
 
         const intersects = raycaster.intersectObjects(interactionTargets, false);
         if (intersects.length > 0) {
             const target = intersects[0].object;
             const data = target.userData;
-
             if (data && !isGameOver) {
                 const last = visitedPath.length > 0 ? visitedPath[visitedPath.length - 1] : null;
                 if (visitedPath.length === 0 || getPossibleMoves(last).some(m => m.f === data.f && m.x === data.x && m.y === data.y)) {
@@ -388,8 +384,7 @@ function init() {
         L = parseInt(document.getElementById('inL').value);
         ['N','M','L'].forEach(id => document.getElementById(`val${id}`).innerText = eval(id));
         createLevel();
-        // パネルを閉じる（UX向上）
-        if(panel) panel.classList.remove('active');
+        // ★修正箇所: スライダー操作時にはメニューを閉じない（削除しました）
     };
     ['N','M','L'].forEach(id => document.getElementById(`in${id}`).addEventListener('input', updateSize));
     
@@ -400,7 +395,11 @@ function init() {
     });
     
     document.getElementById('btnApply').addEventListener('click', () => { 
-        if(confirm("REBOOT CORE?")) updateSize(); 
+        if(confirm("REBOOT CORE?")) {
+            updateSize();
+            // ★修正箇所: REBOOTボタンを押した時のみメニューを閉じる
+            if(panel) panel.classList.remove('active');
+        }
     });
 
     const clock = new THREE.Clock();
