@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIGHT TOUR // PRIME</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;600&family=Orbitron:wght@500;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="ui-layer">
+        <div class="glass-panel">
+            <header>
+                <div class="logo-glitch" data-text="KNIGHT TOUR">KNIGHT TOUR</div>
+                <div class="subtitle">SPATIAL LOGIC ENGINE</div>
+            </header>
+            
+            <div class="control-grid">
+                <div class="slider-group">
+                    <label>DIMENSION <span class="dim-axis">N</span> <span id="valN" class="val">4</span></label>
+                    <div class="range-wrapper">
+                        <input type="range" id="inN" value="4" min="1" max="8" step="1">
+                    </div>
+                </div>
+                <div class="slider-group">
+                    <label>DIMENSION <span class="dim-axis">M</span> <span id="valM" class="val">4</span></label>
+                    <div class="range-wrapper">
+                        <input type="range" id="inM" value="4" min="1" max="8" step="1">
+                    </div>
+                </div>
+                <div class="slider-group">
+                    <label>DIMENSION <span class="dim-axis">L</span> <span id="valL" class="val">4</span></label>
+                    <div class="range-wrapper">
+                        <input type="range" id="inL" value="4" min="1" max="8" step="1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="btnUndo" class="btn-glass">
+                    <span class="icon">↺</span> UNDO STEP
+                </button>
+                <button id="btnApply" class="btn-glass primary">
+                    <span class="icon">◆</span> REBOOT SYSTEM
+                </button>
+            </div>
+
+            <div class="status-monitor">
+                <div class="monitor-header">SYSTEM STATUS</div>
+                <div id="pos-info" class="monitor-text">STANDBY...</div>
+                <div class="monitor-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
