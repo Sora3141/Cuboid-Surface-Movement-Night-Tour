@@ -10,9 +10,9 @@ let visitedPath = [];
 let isGameOver = false;
 let interactionTargets = []; 
 
-// エフェクト用変数
-let particles = []; // パーティクル管理用
-let shakeIntensity = 0; // 画面揺れ強度
+// エフェクト用
+let particles = []; 
+let shakeIntensity = 0; 
 
 const COLORS = {
     cyan: 0x00f0ff,
@@ -20,7 +20,7 @@ const COLORS = {
     white: 0xffffff,
     unvisited: 0x5588aa, 
     bg: 0x1a1a2e,
-    gold: 0xffaa00 // クリア時の色
+    gold: 0xffaa00 
 };
 
 // --- Materials ---
@@ -67,7 +67,6 @@ function spawnExplosion(position, color) {
 
     for (let i = 0; i < particleCount; i++) {
         positions.push(position.x, position.y, position.z);
-        // ランダムな方向に飛び散る
         velocities.push(
             (Math.random() - 0.5) * 0.5,
             (Math.random() - 0.5) * 0.5,
@@ -87,11 +86,10 @@ function spawnExplosion(position, color) {
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-    // アニメーション管理用オブジェクト
     particles.push({
         mesh: points,
         velocities: velocities,
-        life: 1.0 // 寿命
+        life: 1.0 
     });
 }
 
@@ -174,14 +172,22 @@ function createKnight() {
     const shellMat = new THREE.MeshPhysicalMaterial({
         color: COLORS.cyan, metalness: 0.1, roughness: 0.1, transmission: 0.9, thickness: 1.0, emissive: COLORS.cyan, emissiveIntensity: 0.5
     });
+    
+    // 名札をつけて取得しやすくする
     const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), coreMat);
+    core.name = "core";
+    
     const shell = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), shellMat);
+    shell.name = "shell";
+
     const innerGroup = new THREE.Group();
     innerGroup.add(core, shell);
     innerGroup.rotation.set(0, Math.PI / 4, 0); 
+    
     const animHolder = new THREE.Group();
     animHolder.add(innerGroup);
     innerGroup.position.set(0, 0, 0); 
+    
     group.add(animHolder);
     knightMesh = group;
     scene.add(knightMesh);
@@ -211,7 +217,7 @@ function createLevel() {
     interactionTargets = []; 
     visitedPath = []; 
     isGameOver = false;
-    particles = []; // パーティクルリセット
+    particles = [];
 
     const tileGeom = new THREE.BoxGeometry(0.92, 0.92, 0.05);
     const edgeGeom = new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.92, 0.92));
@@ -306,25 +312,26 @@ function updateVisuals() {
         if (visitedPath.length === total) {
             infoEl.innerHTML = "<span style='color:#ffaa00'>🎉 MISSION COMPLETE!</span>";
             isGameOver = true;
-            // ★クリア演出: 金色のパーティクルを放つ
             spawnExplosion(knightMesh.position, COLORS.gold);
-            controls.autoRotate = true; // カメラを回す
+            controls.autoRotate = true; 
             controls.autoRotateSpeed = 10.0;
         } else if (nextMoves.length === 0) {
             infoEl.innerHTML = "<span style='color:#ff0000'>💀 SYSTEM HALT / STUCK</span>";
             isGameOver = true;
-            
-            // ★罰ゲーム演出: 画面シェイク＆赤フラッシュ
-            shakeIntensity = 0.5; // シェイク開始
+            shakeIntensity = 0.5;
             document.getElementById('canvas-container').classList.add('damage-effect');
             setTimeout(() => {
                 document.getElementById('canvas-container').classList.remove('damage-effect');
             }, 500);
             
-            // ナイトを赤くする
-            knightMesh.children[0].children[0].material.color.set(0xff0000); // core
-            knightMesh.children[0].children[1].material.color.set(0xff0000); // shell
-            knightMesh.children[0].children[1].material.emissive.set(0xff0000);
+            // 赤くする (安全に名前で検索)
+            const core = knightMesh.getObjectByName("core");
+            const shell = knightMesh.getObjectByName("shell");
+            if(core) core.material.color.set(0xff0000);
+            if(shell) {
+                shell.material.color.set(0xff0000);
+                shell.material.emissive.set(0xff0000);
+            }
         } else {
             const progress = Math.round((visitedPath.length / total) * 100);
             infoEl.innerText = `PROGRESS: ${progress}% [${visitedPath.length}/${total}]`;
@@ -332,7 +339,7 @@ function updateVisuals() {
     } else {
         if (knightMesh) knightMesh.visible = false;
         infoEl.innerText = "WAITING FOR INPUT...";
-        controls.autoRotate = false; // リセット時に回転停止
+        controls.autoRotate = false;
     }
 }
 
@@ -361,13 +368,18 @@ function undoMove() {
     if (visitedPath.length === 0) return;
     visitedPath.pop();
     isGameOver = false;
-    // ナイトの色を戻す
+    
+    // 色を戻す (安全に)
     if(knightMesh) {
-        knightMesh.children[0].children[0].material.color.set(COLORS.cyan);
-        knightMesh.children[0].children[1].material.color.set(COLORS.cyan);
-        knightMesh.children[0].children[1].material.emissive.set(COLORS.cyan);
+        const core = knightMesh.getObjectByName("core");
+        const shell = knightMesh.getObjectByName("shell");
+        if(core) core.material.color.set(COLORS.cyan);
+        if(shell) {
+            shell.material.color.set(COLORS.cyan);
+            shell.material.emissive.set(COLORS.cyan);
+        }
     }
-    controls.autoRotate = false; // 回転も戻す
+    controls.autoRotate = false;
     updateVisuals();
 }
 
@@ -395,7 +407,10 @@ function init() {
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    renderer.domElement.addEventListener('mousedown', (e) => {
+    // タッチ判定: pointerdownで統一
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+        if (!e.isPrimary) return; 
+
         if (renderer.domElement.width !== window.innerWidth * Math.min(window.devicePixelRatio, 2)) {
              renderer.setSize(window.innerWidth, window.innerHeight);
              camera.aspect = window.innerWidth / window.innerHeight;
@@ -426,25 +441,31 @@ function init() {
         }
     });
 
-    // --- Mobile Menu Interaction ---
+    // --- UI Helpers ---
+    function bindTouchClick(element, handler) {
+        if (!element) return;
+        element.addEventListener('touchstart', (e) => {
+            e.preventDefault(); 
+            e.stopPropagation();
+            handler(e);
+        }, { passive: false });
+        element.addEventListener('click', (e) => {
+            handler(e);
+        });
+    }
+
     const menuBtn = document.getElementById('mobile-menu-btn');
     const closeBtn = document.getElementById('close-menu-btn');
     const panel = document.getElementById('main-panel');
     const mobileUndo = document.getElementById('mobile-undo-btn');
+    const pcUndo = document.getElementById('btnUndo'); // PCボタン
 
-    if(menuBtn && panel) {
-        menuBtn.addEventListener('click', () => {
-            panel.classList.add('active');
-        });
-    }
-    if(closeBtn && panel) {
-        closeBtn.addEventListener('click', () => {
-            panel.classList.remove('active');
-        });
-    }
-    if(mobileUndo) {
-        mobileUndo.addEventListener('click', undoMove);
-    }
+    bindTouchClick(menuBtn, () => panel.classList.add('active'));
+    bindTouchClick(closeBtn, () => panel.classList.remove('active'));
+    
+    // ★共通化: どちらのボタンも同じ undoMove を呼ぶ
+    bindTouchClick(mobileUndo, undoMove);
+    bindTouchClick(pcUndo, undoMove);
 
     const updateSize = () => {
         N = parseInt(document.getElementById('inN').value);
@@ -454,18 +475,6 @@ function init() {
         createLevel();
     };
     ['N','M','L'].forEach(id => document.getElementById(`in${id}`).addEventListener('input', updateSize));
-    
-    document.getElementById('btnUndo').addEventListener('click', () => { 
-        visitedPath.pop(); 
-        isGameOver=false; 
-        // ナイトの色戻し
-        if(knightMesh) {
-            knightMesh.children[0].children[0].material.color.set(COLORS.cyan);
-            knightMesh.children[0].children[1].material.color.set(COLORS.cyan);
-            knightMesh.children[0].children[1].material.emissive.set(COLORS.cyan);
-        }
-        updateVisuals(); 
-    });
     
     document.getElementById('btnApply').addEventListener('click', () => { 
         if(confirm("REBOOT CORE?")) {
@@ -480,21 +489,18 @@ function init() {
         const delta = clock.getElapsedTime();
         controls.update();
 
-        // 浮遊アニメーション
         if (knightMesh && knightMesh.visible) {
              const floatZ = Math.sin(delta * 2) * 0.03;
              knightMesh.children[0].position.z = 0.36 + floatZ; 
              knightMesh.children[0].children[0].rotation.y += 0.02; 
         }
         
-        // 全体の回転
         if (boxGroup) {
             boxGroup.rotation.y = Math.sin(delta * 0.1) * 0.05;
         }
 
-        // --- エフェクト: シェイク (手詰まり時) ---
         if (shakeIntensity > 0) {
-            shakeIntensity -= 0.02; // 減衰
+            shakeIntensity -= 0.02; 
             if(shakeIntensity < 0) shakeIntensity = 0;
             const rx = (Math.random() - 0.5) * shakeIntensity;
             const ry = (Math.random() - 0.5) * shakeIntensity;
@@ -502,7 +508,6 @@ function init() {
             camera.position.add(new THREE.Vector3(rx, ry, rz));
         }
 
-        // --- エフェクト: パーティクル (クリア時) ---
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             p.life -= 0.02;
@@ -513,7 +518,6 @@ function init() {
             }
             const posAttr = p.mesh.geometry.attributes.position;
             for (let j = 0; j < posAttr.count; j++) {
-                // 広がる動き
                 posAttr.setXYZ(
                     j,
                     posAttr.getX(j) + p.velocities[j * 3],
