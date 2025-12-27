@@ -39,7 +39,6 @@ const MATERIALS = {
     collider: new THREE.MeshBasicMaterial({ visible: false })
 };
 
-// --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(COLORS.bg);
 scene.fog = new THREE.FogExp2(COLORS.bg, 0.02);
@@ -55,26 +54,21 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// --- Lighting ---
 function setupLighting() {
     const ambient = new THREE.AmbientLight(0xffffff, 0.7); 
     scene.add(ambient);
-
     const sun = new THREE.DirectionalLight(0xffffff, 1.5);
     sun.position.set(10, 20, 10);
     sun.castShadow = true;
     scene.add(sun);
-
     const cyanPoint = new THREE.PointLight(COLORS.cyan, 80);
     cyanPoint.position.set(-10, 10, -10);
     scene.add(cyanPoint);
-
     const magPoint = new THREE.PointLight(COLORS.magenta, 80);
     magPoint.position.set(10, -10, 10);
     scene.add(magPoint);
 }
 
-// --- Logic Helpers ---
 const faceLayouts = {
     'F': { R: 'R', L: 'L', U: 'U', D: 'D' }, 'B': { R: 'L', L: 'R', U: "U''", D: "D''" },
     'R': { R: 'B', L: 'F', U: "U'", D: "D'''" }, 'L': { R: 'F', L: 'B', U: "U'''", D: "D'" },
@@ -132,7 +126,6 @@ function walk(f, x, y, dx, dy, accRot) {
     }
 }
 
-// --- Knight Logic ---
 function createKnight() {
     if (knightMesh) scene.remove(knightMesh);
     const group = new THREE.Group();
@@ -140,29 +133,14 @@ function createKnight() {
     const shellMat = new THREE.MeshPhysicalMaterial({
         color: COLORS.cyan, metalness: 0.1, roughness: 0.1, transmission: 0.9, thickness: 1.0, emissive: COLORS.cyan, emissiveIntensity: 0.5
     });
-    
-    // 八面体（半径0.35）
-    // デフォルトの八面体は頂点がY軸方向（上下）にある。
-    // そのため、そのまま置くと横倒しになるか、回転が必要。
     const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), coreMat);
     const shell = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), shellMat);
-    
     const innerGroup = new THREE.Group();
     innerGroup.add(core, shell);
-    
-    // 先端をZ軸（面の法線）に向けるための回転
-    // X軸に90度回すと、Y軸の頂点がZ軸に向く
-    innerGroup.rotation.x = Math.PI / 2;
-    // さらにおしゃれにY軸（元のZ軸）で45度回す
-    innerGroup.rotation.y = Math.PI / 4;
-    
+    innerGroup.rotation.set(0, Math.PI / 4, 0); 
     const animHolder = new THREE.Group();
     animHolder.add(innerGroup);
-    
-    // ★修正箇所: 二重オフセットの撤廃
-    // ここでのオフセットを「0」にする。位置合わせは updateKnightPositionToTile に一任する。
     innerGroup.position.set(0, 0, 0); 
-
     group.add(animHolder);
     knightMesh = group;
     scene.add(knightMesh);
@@ -171,27 +149,18 @@ function createKnight() {
 
 function updateKnightPositionToTile(tileMesh) {
     if (!knightMesh || !tileMesh) return;
-    
     knightMesh.visible = true;
-
     const targetPos = new THREE.Vector3();
     tileMesh.getWorldPosition(targetPos);
-    
     const targetQuat = new THREE.Quaternion();
     tileMesh.getWorldQuaternion(targetQuat);
-
-    // ★修正箇所: タイル表面へのオフセットのみ適用
-    // 半径0.35なので、0.35浮かせれば先端が接触する計算。
-    // 0.36 にして 0.01 の微小隙間を作る（スレスレ）
     const offset = new THREE.Vector3(0, 0, 0.36); 
     offset.applyQuaternion(targetQuat);
     targetPos.add(offset);
-
     knightMesh.position.copy(targetPos);
     knightMesh.quaternion.copy(targetQuat);
 }
 
-// --- Level Creation ---
 function createLevel() {
     if (boxGroup) scene.remove(boxGroup);
     boxGroup = new THREE.Group(); 
@@ -224,7 +193,6 @@ function createLevel() {
         for (let x = 0; x < f.w; x++) {
             tiles[f.id][x] = [];
             for (let y = 0; y < f.h; y++) {
-                
                 const mesh = new THREE.Mesh(tileGeom, MATERIALS.glassBase.clone());
                 mesh.position.set(x - f.w / 2 + 0.5, y - f.h / 2 + 0.5, 0);
                 mesh.castShadow = true;
@@ -241,7 +209,6 @@ function createLevel() {
                 collider.position.copy(mesh.position);
                 collider.position.z = 0.05; 
                 collider.userData = { f: f.id, x, y };
-                
                 g.add(collider);
                 interactionTargets.push(collider);
             }
@@ -261,7 +228,6 @@ function createLevel() {
     updateVisuals(); 
 }
 
-// --- Visual Updates ---
 function updateVisuals() {
     const infoEl = document.getElementById('pos-info');
     const total = N*M*2 + N*L*2 + M*L*2;
@@ -283,10 +249,8 @@ function updateVisuals() {
 
     if (visitedPath.length > 0) {
         const last = visitedPath[visitedPath.length - 1];
-        
         const targetTile = tiles[last.f][last.x][last.y].mesh;
         updateKnightPositionToTile(targetTile);
-
         const nextMoves = getPossibleMoves(last).filter(m => !visitedPath.some(v => v.id === `${m.f}_${m.x}_${m.y}`));
         nextMoves.forEach(m => { 
             if (tiles[m.f]?.[m.x]?.[m.y]) {
@@ -341,13 +305,11 @@ function undoMove() {
     updateVisuals();
 }
 
-// --- Initialization ---
 function init() {
     const width = window.innerWidth;
     const height = window.innerHeight;
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
@@ -368,6 +330,7 @@ function init() {
     const mouse = new THREE.Vector2();
 
     renderer.domElement.addEventListener('mousedown', (e) => {
+        // [スマホ対応] クリック判定時のサイズ強制同期
         if (renderer.domElement.width !== window.innerWidth * Math.min(window.devicePixelRatio, 2)) {
              renderer.setSize(window.innerWidth, window.innerHeight);
              camera.aspect = window.innerWidth / window.innerHeight;
@@ -375,7 +338,6 @@ function init() {
         }
 
         e.preventDefault();
-
         const rect = renderer.domElement.getBoundingClientRect();
         
         mouse.x = ( ( e.clientX - rect.left ) / rect.width ) * 2 - 1;
@@ -384,17 +346,13 @@ function init() {
         raycaster.setFromCamera(mouse, camera);
 
         const intersects = raycaster.intersectObjects(interactionTargets, false);
-
         if (intersects.length > 0) {
             const target = intersects[0].object;
             const data = target.userData;
 
             if (data && !isGameOver) {
                 const last = visitedPath.length > 0 ? visitedPath[visitedPath.length - 1] : null;
-
-                if (visitedPath.length === 0 || 
-                    getPossibleMoves(last).some(m => m.f === data.f && m.x === data.x && m.y === data.y)) {
-                    
+                if (visitedPath.length === 0 || getPossibleMoves(last).some(m => m.f === data.f && m.x === data.x && m.y === data.y)) {
                     const id = `${data.f}_${data.x}_${data.y}`;
                     if (!visitedPath.some(v => v.id === id)) {
                         moveTo(data);
@@ -404,12 +362,34 @@ function init() {
         }
     });
 
+    // --- Mobile Menu Interaction ---
+    const menuBtn = document.getElementById('mobile-menu-btn');
+    const closeBtn = document.getElementById('close-menu-btn');
+    const panel = document.getElementById('main-panel');
+    const mobileUndo = document.getElementById('mobile-undo-btn');
+
+    if(menuBtn && panel) {
+        menuBtn.addEventListener('click', () => {
+            panel.classList.add('active');
+        });
+    }
+    if(closeBtn && panel) {
+        closeBtn.addEventListener('click', () => {
+            panel.classList.remove('active');
+        });
+    }
+    if(mobileUndo) {
+        mobileUndo.addEventListener('click', undoMove);
+    }
+
     const updateSize = () => {
         N = parseInt(document.getElementById('inN').value);
         M = parseInt(document.getElementById('inM').value);
         L = parseInt(document.getElementById('inL').value);
         ['N','M','L'].forEach(id => document.getElementById(`val${id}`).innerText = eval(id));
         createLevel();
+        // パネルを閉じる（UX向上）
+        if(panel) panel.classList.remove('active');
     };
     ['N','M','L'].forEach(id => document.getElementById(`in${id}`).addEventListener('input', updateSize));
     
@@ -430,7 +410,6 @@ function init() {
         controls.update();
 
         if (knightMesh && knightMesh.visible) {
-             // アニメーションもオフセット 0.36 を基準にする
              const floatZ = Math.sin(delta * 2) * 0.03;
              knightMesh.children[0].position.z = 0.36 + floatZ; 
              knightMesh.children[0].children[0].rotation.y += 0.02; 
