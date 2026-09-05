@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // --- Global State ---
 let N = 4, M = 4, L = 4;
+let is2D = false;
 let tiles = {};            
 let boxGroup;              
 let knightMesh;            
@@ -223,7 +224,9 @@ function createLevel() {
     const edgeGeom = new THREE.EdgesGeometry(new THREE.PlaneGeometry(0.92, 0.92));
     const colliderGeom = new THREE.PlaneGeometry(0.95, 0.95);
 
-    const faceData = [
+    const faceData = is2D ? [
+        { id: 'F', w: N, h: M, p: [0, 0, 0], r: [0, 0, 0] }
+    ] : [
         { id: 'F', w: N, h: M, p: [0, 0, L / 2], r: [0, 0, 0] },
         { id: 'B', w: N, h: M, p: [0, 0, -L / 2], r: [0, Math.PI, 0] },
         { id: 'U', w: N, h: L, p: [0, M / 2, 0], r: [-Math.PI / 2, 0, 0] },
@@ -266,9 +269,14 @@ function createLevel() {
 
     createKnight();
     
-    const maxDim = Math.max(N, M, L);
-    const camDist = maxDim * 2.0;
-    camera.position.set(camDist, camDist, camDist);
+    const maxDim = is2D ? Math.max(N, M) : Math.max(N, M, L);
+    const camDist = maxDim * (is2D ? 1.4 : 2.0);
+    if (is2D) {
+        camera.position.set(0, 0, camDist);
+        controls.target.set(0, 0, 0);
+    } else {
+        camera.position.set(camDist, camDist, camDist);
+    }
     controls.minDistance = maxDim;
     controls.maxDistance = maxDim * 4;
     controls.update();
@@ -278,7 +286,7 @@ function createLevel() {
 
 function updateVisuals() {
     const infoEl = document.getElementById('pos-info');
-    const total = N*M*2 + N*L*2 + M*L*2;
+    const total = is2D ? N * M : (N*M*2 + N*L*2 + M*L*2);
     
     Object.keys(tiles).forEach(f => tiles[f].forEach(c => c.forEach(t => {
         t.mesh.material = MATERIALS.glassBase;
@@ -347,6 +355,17 @@ function getPossibleMoves(current) {
     const { f, x, y } = current;
     const patterns = [[1, 2], [1, -2], [-1, 2], [-1, -2], [2, 1], [2, -1], [-2, 1], [-2, -1]];
     let possible = [];
+
+    if (is2D) {
+        patterns.forEach(([mx, my]) => {
+            const nx = x + mx, ny = y + my;
+            if (nx >= 0 && nx < N && ny >= 0 && ny < M) {
+                possible.push({ f: 'F', x: nx, y: ny, rot: 0 });
+            }
+        });
+        return possible;
+    }
+
     patterns.forEach(([mx, my]) => {
         let pA1 = walk(f, x, y, mx, 0, 0);
         possible.push(walk(pA1.f, pA1.x, pA1.y, rotateVector(0, my, pA1.rot).x, rotateVector(0, my, pA1.rot).y, pA1.rot));
@@ -467,6 +486,9 @@ function init() {
     bindTouchClick(mobileUndo, undoMove);
     bindTouchClick(pcUndo, undoMove);
 
+    const groupL = document.getElementById('groupL');
+    const chk2D = document.getElementById('chk2D');
+
     const updateSize = () => {
         N = parseInt(document.getElementById('inN').value);
         M = parseInt(document.getElementById('inM').value);
@@ -475,7 +497,20 @@ function init() {
         createLevel();
     };
     ['N','M','L'].forEach(id => document.getElementById(`in${id}`).addEventListener('input', updateSize));
-    
+
+    chk2D.addEventListener('change', () => {
+        is2D = chk2D.checked;
+        groupL.style.display = is2D ? 'none' : '';
+        if (is2D) {
+            document.getElementById('inN').value = 8;
+            document.getElementById('inM').value = 8;
+            document.getElementById('valN').innerText = 8;
+            document.getElementById('valM').innerText = 8;
+            N = 8; M = 8;
+        }
+        createLevel();
+    });
+
     document.getElementById('btnApply').addEventListener('click', () => { 
         if(confirm("REBOOT CORE?")) {
             updateSize();

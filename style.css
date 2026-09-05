@@ -107,6 +107,27 @@ canvas {
     margin: 25px 0;
 }
 
+.mode-toggle {
+    margin-top: 15px;
+}
+
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    user-select: none;
+}
+
+.switch-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-cyan);
+    cursor: pointer;
+}
+
 .slider-group label {
     display: flex;
     justify-content: space-between;
